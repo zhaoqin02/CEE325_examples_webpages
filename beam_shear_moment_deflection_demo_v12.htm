@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Beam Shear-Moment-Deflection Teaching Demo</title>
+<style>
+  :root{
+    --bg:#f8fafc;
+    --card:#ffffff;
+    --ink:#0f172a;
+    --muted:#64748b;
+    --line:#cbd5e1;
+    --blue:#2563eb;
+    --blue2:#1d4ed8;
+    --green:#059669;
+    --amber:#d97706;
+    --red:#dc2626;
+    --shadow:0 12px 34px rgba(15,23,42,.08);
+    --radius:24px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: radial-gradient(circle at top, #ffffff 0%, #f8fafc 55%, #eef2ff 100%);
+    color:var(--ink);
+  }
+  .page{
+    max-width:1400px;
+    margin:0 auto;
+    padding:24px;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns: 360px minmax(0,1fr);
+    gap:24px;
+  }
+  .card{
+    background:var(--card);
+    border:1px solid #e2e8f0;
+    border-radius:30px;
+    box-shadow:var(--shadow);
+  }
+  .panel{padding:22px}
+  h1,h2,h3,p{margin:0}
+  h1{font-size:28px; line-height:1.15}
+  h2{font-size:23px; margin-bottom:8px}
+  h3{font-size:15px; margin-bottom:10px}
+  .sub{color:var(--muted); font-size:14px; line-height:1.65; margin-top:10px}
+  .section{margin-top:18px}
+  .support-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+  }
+  .support-card{
+    border:1px solid #dbe3ee;
+    border-radius:22px;
+    padding:12px;
+    cursor:pointer;
+    transition:.18s ease;
+    background:#fbfdff;
+  }
+  .support-card:hover{transform:translateY(-1px); border-color:#93c5fd}
+  .support-card.active{border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+  .support-label{font-size:13px; font-weight:700; margin-top:8px}
+  .support-note{font-size:11px; color:var(--muted); margin-top:4px}
+  .mini-svg{width:100%; height:66px; display:block}
+  .two-col{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  label{font-size:12px; color:var(--muted); display:block; margin-bottom:5px}
+  input, select, button{
+    width:100%;
+    border-radius:16px;
+    border:1px solid #cbd5e1;
+    padding:11px 12px;
+    font-size:14px;
+    background:white;
+  }
+  button{
+    background:#0f172a;
+    color:white;
+    border:none;
+    cursor:pointer;
+    font-weight:700;
+  }
+  button.secondary{background:#e2e8f0; color:#0f172a}
+  button.green{background:#059669}
+  button.blue{background:#2563eb}
+  button:disabled{opacity:.5; cursor:not-allowed}
+  .btn-row{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  .load-list{display:grid; gap:10px; margin-top:12px}
+  .load-item{
+    border:1px solid #e2e8f0;
+    border-radius:18px;
+    padding:12px;
+    background:#fbfdff;
+    display:grid;
+    grid-template-columns:1fr auto;
+    gap:8px;
+    align-items:start;
+  }
+  .load-item small{display:block; color:var(--muted); margin-top:4px; line-height:1.4}
+  .chip-row{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:16px}
+  .chip{
+    border-radius:22px;
+    padding:14px;
+    background:#ffffff;
+    border:1px solid #e2e8f0;
+  }
+  .chip .k{font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted)}
+  .chip .v{font-size:22px; font-weight:800; margin-top:6px}
+  .chip .s{font-size:12px; color:var(--muted); margin-top:4px}
+  .answer-input{width:100%; margin-top:8px; border-radius:14px; border:1px solid #cbd5e1; padding:9px 10px; font-size:16px; font-weight:700}
+  .answer-meta{margin-top:8px; font-size:12px; line-height:1.45; color:var(--muted)}
+  .answer-value{font-size:24px; font-weight:800; line-height:1.1; color:var(--ink); margin-top:2px}
+  .answer-status{display:inline-block; margin-top:6px; padding:4px 8px; border-radius:999px; font-size:11px; font-weight:700}
+  .answer-status.correct{background:#dcfce7; color:#166534}
+  .answer-status.incorrect{background:#fee2e2; color:#991b1b}
+  .answer-status.pending{background:#e2e8f0; color:#334155}
+  .right-panel{padding:18px}
+  .canvas-wrap{padding:10px; border-radius:28px; background:linear-gradient(180deg,#ffffff,#f8fafc); border:1px solid #e2e8f0}
+  .big-svg{width:100%; height:1060px; display:block}
+  .formula{
+    position:absolute; right:16px; top:14px;
+    width:170px; background:white; border:1px solid #e2e8f0; border-radius:18px; padding:12px 14px;
+    box-shadow:var(--shadow);
+  }
+  .formula h4{margin:0 0 6px 0; font-size:14px}
+  .formula .eq{font-size:20px; line-height:1.2; margin:4px 0}
+  .formula .txt{display:none}
+  .viz-holder{position:relative}
+  .footer-sign{
+    position:fixed; right:18px; bottom:14px; z-index:50;
+    font-size:12px; color:#475569; background:rgba(255,255,255,.85); backdrop-filter: blur(6px);
+    border:1px solid #dbe3ee; padding:8px 12px; border-radius:999px; box-shadow:0 8px 20px rgba(15,23,42,.08);
+  }
+  
+  .range-row{display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center}
+  .range-row input[type=range]{width:100%}
+  .range-val{font-size:13px; color:var(--muted); min-width:48px; text-align:right}
+  .dual-range{
+    position:relative; height:34px; margin-top:6px;
+  }
+  .dual-range .track{
+    position:absolute; left:0; right:0; top:15px; height:4px; background:#dbe3ee; border-radius:999px;
+  }
+  .dual-range .fill{
+    position:absolute; top:15px; height:4px; background:#93c5fd; border-radius:999px;
+  }
+  .dual-range input[type=range]{
+    position:absolute; left:0; top:6px; width:100%; pointer-events:none; -webkit-appearance:none; background:transparent; margin:0; padding:0; border:none;
+  }
+  .dual-range input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; pointer-events:auto; width:16px; height:16px; border-radius:50%; background:#2563eb; border:2px solid white; box-shadow:0 1px 4px rgba(15,23,42,.18); cursor:pointer;
+  }
+  .dual-range input[type=range]::-moz-range-thumb{
+    pointer-events:auto; width:16px; height:16px; border-radius:50%; background:#2563eb; border:2px solid white; box-shadow:0 1px 4px rgba(15,23,42,.18); cursor:pointer;
+  }
+
+  @media (max-width: 1150px){
+    .grid{grid-template-columns:1fr}
+    .formula{position:static; width:auto; margin:12px 0 0 auto}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="grid">
+    <div class="card panel">
+      <h1>Beam → Shear → Moment → Deflection</h1>
+      <p class="sub">Choose a support case, add one or more loads, and watch the shear and bending moment diagrams update immediately. When you click <b>Deflection</b>, the beam deformation is drawn qualitatively from the final bending moment field.</p>
+
+      <div class="section">
+        <h3>Support schematic table</h3>
+        <div class="support-grid" id="supportGrid"></div>
+        <div id="rollerControlCard" class="card" style="display:none; box-shadow:none; border-radius:24px; padding:14px; background:#fcfdff; margin-top:12px;">
+          <h3 style="margin-bottom:6px">Roller location</h3>
+          <div class="range-row">
+            <div>
+              <label style="margin-bottom:2px">Move right support</label>
+              <input type="range" id="rollerXRange" min="2" max="10" step="0.1" value="10">
+            </div>
+            <div class="range-val" id="rollerXReadout">x = 10.0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section card" style="box-shadow:none; border-radius:24px; padding:14px; background:#fcfdff;">
+        <h3>Add a point load</h3>
+        <div class="two-col">
+          <div><label>Magnitude P</label><input type="number" id="pointMag" value="20" step="1"></div>
+          <div><label>Location x</label><input type="number" id="pointX" value="4" step="0.1"></div>
+        </div>
+        <div class="range-row" style="margin-top:10px">
+          <div>
+            <label style="margin-bottom:2px">Slide location</label>
+            <input type="range" id="pointXRange" min="0" max="10" step="0.1" value="4">
+          </div>
+          <div class="range-val" id="pointXReadout">4.0</div>
+        </div>
+        <div style="margin-top:10px"><button class="blue" id="addPointBtn">Add point load</button></div>
+      </div>
+
+      <div class="section card" style="box-shadow:none; border-radius:24px; padding:14px; background:#fcfdff;">
+        <h3>Add a distributed load</h3>
+        <div class="two-col">
+          <div><label>Magnitude w</label><input type="number" id="udlMag" value="4" step="0.5"></div>
+          <div><label>Start x</label><input type="number" id="udlStart" value="2" step="0.1"></div>
+        </div>
+        <div class="two-col" style="margin-top:10px">
+          <div><label>End x</label><input type="number" id="udlEnd" value="7" step="0.1"></div>
+          <div style="display:flex; align-items:end"><button class="blue" id="addUdlBtn">Add distributed load</button></div>
+        </div>
+        <div style="margin-top:10px">
+          <label style="margin-bottom:2px">Slide start and end</label>
+          <div class="dual-range">
+            <div class="track"></div>
+            <div class="fill" id="udlRangeFill"></div>
+            <input type="range" id="udlStartRange" min="0" max="10" step="0.1" value="2">
+            <input type="range" id="udlEndRange" min="0" max="10" step="0.1" value="7">
+          </div>
+          <div class="two-col" style="margin-top:4px">
+            <div class="range-val" id="udlStartReadout" style="text-align:left">x− = 2.0</div>
+            <div class="range-val" id="udlEndReadout">x+ = 7.0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section card" style="box-shadow:none; border-radius:24px; padding:14px; background:#fcfdff;">
+        <h3>Add a point moment</h3>
+        <div class="two-col">
+          <div><label>Magnitude M</label><input type="number" id="pointMomentMag" value="15" step="1"></div>
+          <div><label>Location x</label><input type="number" id="pointMomentX" value="6" step="0.1"></div>
+        </div>
+        <div class="range-row" style="margin-top:10px">
+          <div>
+            <label style="margin-bottom:2px">Slide location</label>
+            <input type="range" id="pointMomentXRange" min="0" max="10" step="0.1" value="6">
+          </div>
+          <div class="range-val" id="pointMomentXReadout">6.0</div>
+        </div>
+        <div style="margin-top:10px"><button class="blue" id="addPointMomentBtn">Add point moment</button></div>
+      </div>
+
+      <div class="section">
+        <div class="btn-row">
+          <button class="green" id="deflectionBtn">Deflection</button>
+          <button class="secondary" id="clearBtn">Clear all loads</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>Current loads</h3>
+        <div id="loadList" class="load-list"></div>
+      </div>
+    </div>
+
+    <div class="card right-panel">
+      <div class="chip-row">
+        <div class="chip">
+          <div class="k">Left reaction</div>
+          <input class="answer-input" id="r1Guess" type="number" step="0.1" placeholder="Your answer">
+          <div class="answer-meta"><div id="r1Val" class="answer-value"></div><div id="r1Status" class="answer-status pending">Enter a value</div></div>
+        </div>
+        <div class="chip">
+          <div class="k">Right reaction</div>
+          <input class="answer-input" id="r2Guess" type="number" step="0.1" placeholder="Your answer">
+          <div class="answer-meta"><div id="r2Val" class="answer-value"></div><div id="r2Status" class="answer-status pending">Enter a value</div></div>
+        </div>
+        <div class="chip">
+          <div class="k">Support moment</div>
+          <input class="answer-input" id="mfixGuess" type="number" step="0.1" placeholder="Your answer">
+          <div class="answer-meta"><div id="mfixVal" class="answer-value"></div><div id="mfixStatus" class="answer-status pending">Enter a value</div></div>
+        </div>
+      </div>
+
+      <div class="viz-holder section">
+        <div class="canvas-wrap">
+          <svg id="mainSvg" class="big-svg" viewBox="0 0 980 1060"></svg>
+        </div>
+        <div class="formula">
+          <h4>Core connection</h4>
+          <div class="eq">w → V → M → y</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="footer-sign">Zhao Qin at SU and ChatGPT 2026</div>
+
+<script>
+const state = {
+  L: 10,
+  support: 'simple_alt',
+  supports: {
+    cantilever: {name:'Fixed–Free', xA:0, xB:null, typeA:'fixed', typeB:'free', determinate:true, note:'Cantilever beam'},
+    simple_alt: {name:'Pinned–Roller', xA:0, xB:10, typeA:'pin', typeB:'roller', determinate:true, note:'Roller position can move along the beam'}
+  },
+  loads: [],
+  showDeflection: false
+};
+
+const supportOrder = ['simple_alt','cantilever'];
+const svg = document.getElementById('mainSvg');
+
+function el(id){ return document.getElementById(id); }
+function fmt(n){
+  if(!isFinite(n)) return '—';
+  const a = Math.abs(n);
+  if(a < 1e-8) return '0.00';
+  return (Math.round(n*100)/100).toFixed(2);
+}
+function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+function syncPointControls(from){
+  if(from==='range'){ el('pointX').value = parseFloat(el('pointXRange').value).toFixed(1); }
+  else {
+    let v = clamp(parseFloat(el('pointX').value || 0), 0, state.L);
+    el('pointX').value = v.toFixed(1);
+    el('pointXRange').value = v;
+  }
+  el('pointXReadout').textContent = parseFloat(el('pointX').value).toFixed(1);
+}
+function syncPointMomentControls(from){
+  if(from==='range'){ el('pointMomentX').value = parseFloat(el('pointMomentXRange').value).toFixed(1); }
+  else {
+    let v = clamp(parseFloat(el('pointMomentX').value || 0), 0, state.L);
+    el('pointMomentX').value = v.toFixed(1);
+    el('pointMomentXRange').value = v;
+  }
+  el('pointMomentXReadout').textContent = parseFloat(el('pointMomentX').value).toFixed(1);
+}
+function syncUdlControls(from){
+  let a = parseFloat(el('udlStart').value || 0);
+  let b = parseFloat(el('udlEnd').value || state.L);
+  if(from==='rangeStart') a = parseFloat(el('udlStartRange').value);
+  if(from==='rangeEnd') b = parseFloat(el('udlEndRange').value);
+  a = clamp(a, 0, state.L);
+  b = clamp(b, 0, state.L);
+  if(a > b){ if(from==='rangeStart' || from==='numberStart') b = a; else a = b; }
+  el('udlStart').value = a.toFixed(1);
+  el('udlEnd').value = b.toFixed(1);
+  el('udlStartRange').value = a;
+  el('udlEndRange').value = b;
+  el('udlStartReadout').textContent = `x− = ${a.toFixed(1)}`;
+  el('udlEndReadout').textContent = `x+ = ${b.toFixed(1)}`;
+  const left = (a/state.L)*100;
+  const right = (b/state.L)*100;
+  const fill = el('udlRangeFill');
+  fill.style.left = left + '%';
+  fill.style.width = Math.max(0, right-left) + '%';
+}
+function mapX(x){ return 90 + x/state.L * 760; }
+function mapBeamY(){ return 150; }
+function updateRollerControl(){
+  const show = state.support === 'simple_alt';
+  el('rollerControlCard').style.display = show ? 'block' : 'none';
+  if(show){
+    const xB = state.supports.simple_alt.xB;
+    el('rollerXRange').value = xB;
+    el('rollerXReadout').textContent = `x = ${parseFloat(xB).toFixed(1)}`;
+  }
+}
+function buildSupportCards(){
+  const host = el('supportGrid');
+  host.innerHTML = '';
+  supportOrder.forEach(key => {
+    const s = state.supports[key];
+    const div = document.createElement('div');
+    div.className = 'support-card' + (state.support===key?' active':'');
+    div.innerHTML = `<svg class="mini-svg" viewBox="0 0 160 66">${miniSupportSvg(s)}</svg>
+      <div class="support-label">${s.name}</div>
+      <div class="support-note">${s.note}</div>`;
+    div.onclick = () => { state.support = key; state.showDeflection = false; buildSupportCards(); updateRollerControl(); render(); };
+    host.appendChild(div);
+  });
+}
+function miniSupportSvg(s){
+  const beamY=22;
+  const beamEnd=s.xB===null?130:145;
+  let str = `<line x1="16" y1="${beamY}" x2="${beamEnd}" y2="${beamY}" stroke="#2563eb" stroke-width="6" stroke-linecap="round"/>`;
+  str += drawSupportMini(s.typeA, 16, beamY);
+  if(s.typeB && s.xB!==null) str += drawSupportMini(s.typeB, 145, beamY);
+  if(s.typeB==='free') str += `<circle cx="130" cy="${beamY}" r="5" fill="#94a3b8"/>`;
+  return str;
+}
+function drawSupportMini(type, x, y){
+  if(type==='pin') return `<polygon points="${x-16},${y+18} ${x+16},${y+18} ${x},${y+1}" fill="#475569"/><circle cx="${x-8}" cy="${y+24}" r="3" fill="#94a3b8"/><circle cx="${x+8}" cy="${y+24}" r="3" fill="#94a3b8"/>`;
+  if(type==='roller') return `<polygon points="${x-16},${y+14} ${x+16},${y+14} ${x},${y+1}" fill="#475569"/><circle cx="${x-8}" cy="${y+20}" r="3" fill="#94a3b8"/><circle cx="${x+8}" cy="${y+20}" r="3" fill="#94a3b8"/>`;
+  if(type==='fixed') return `<rect x="${x-6}" y="${y-22}" width="12" height="44" rx="2" fill="#334155"/>`;
+  return '';
+}
+function totalLoads(){
+  let W = 0, M0 = 0;
+  state.loads.forEach(ld => {
+    if(ld.type==='point'){
+      W += ld.P;
+      M0 += ld.P * ld.x;
+    } else if(ld.type==='udl'){
+      const ww = ld.w * (ld.b - ld.a);
+      const xc = 0.5*(ld.a + ld.b);
+      W += ww;
+      M0 += ww * xc;
+    } else if(ld.type==='moment'){
+      M0 += ld.M;
+    }
+  });
+  return {W, M0};
+}
+function reactions(){
+  const s = state.supports[state.support];
+  const {W, M0} = totalLoads();
+  if(state.support==='cantilever'){
+    return {R1: W, R2: 0, Mfix: -M0, xA:0, xB:null};
+  }
+  const span = s.xB - s.xA;
+  const RB = span === 0 ? 0 : (M0 - W*s.xA) / span;
+  const RA = W - RB;
+  return {R1: RA, R2: RB, Mfix: 0, xA:s.xA, xB:s.xB};
+}
+function computeFields(){
+  const n = 1200;
+  const L = state.L;
+  const dx = L/(n-1);
+  const x = Array.from({length:n}, (_,i)=>i*dx);
+  const reac = reactions();
+  const V = Array(n).fill(0);
+  const M = Array(n).fill(0);
+  if(state.support==='cantilever') M[0] = reac.Mfix;
+  for(let i=0;i<n;i++){
+    let v = 0;
+    if(state.support==='cantilever') v += reac.R1;
+    else {
+      if(x[i] >= reac.xA) v += reac.R1;
+      if(reac.xB !== null && x[i] >= reac.xB) v += reac.R2;
+    }
+    state.loads.forEach(ld => {
+      if(ld.type==='point' && x[i] >= ld.x) v -= ld.P;
+      if(ld.type==='udl'){
+        const len = Math.max(0, Math.min(x[i], ld.b) - ld.a);
+        v -= ld.w * Math.max(0, len);
+      }
+    });
+    V[i] = v;
+  }
+  for(let i=1;i<n;i++) M[i] = M[i-1] + 0.5*(V[i-1]+V[i])*dx;
+  for(let i=0;i<n;i++){
+    let jump = 0;
+    state.loads.forEach(ld => {
+      if(ld.type==='moment' && x[i] >= ld.x) jump += ld.M;
+    });
+    M[i] += jump;
+  }
+  return {x, V, M, dx, ...reac};
+}
+function computeDeflection(fields){
+  const {x, M, dx} = fields;
+  const n = x.length;
+  const curv = M.map(v => v);
+  const theta0 = Array(n).fill(0);
+  const y0 = Array(n).fill(0);
+  for(let i=1;i<n;i++){
+    theta0[i] = theta0[i-1] + 0.5*(curv[i-1]+curv[i])*dx;
+    y0[i] = y0[i-1] + 0.5*(theta0[i-1]+theta0[i])*dx;
+  }
+  if(state.support==='cantilever') return y0;
+  const s = state.supports[state.support];
+  const xA = s.xA;
+  const xB = s.xB;
+  const iA = nearestIndex(x, xA);
+  const iB = nearestIndex(x, xB);
+  const C1 = - (y0[iB] - y0[iA]) / (xB - xA);
+  const C2 = - y0[iA] - C1*xA;
+  return x.map((xx,i) => y0[i] + C1*xx + C2);
+}
+function nearestIndex(arr, val){
+  const dx = arr[1]-arr[0];
+  return clamp(Math.round(val/dx), 0, arr.length-1);
+}
+function maxAbs(arr){ return arr.reduce((m,v)=>Math.max(m,Math.abs(v)),0); }
+function setAnswerFeedback(inputId, valueId, statusId, correctValue, active=true, revealLabel=''){
+  const input = el(inputId);
+  const valNode = el(valueId);
+  const statusNode = el(statusId);
+  if(!active){
+    input.disabled = true;
+    input.placeholder = 'Not used';
+    valNode.textContent = '';
+    statusNode.textContent = 'Not used';
+    statusNode.className = 'answer-status pending';
+    return;
+  }
+  input.disabled = false;
+  input.placeholder = 'Your answer';
+  const raw = input.value.trim();
+  if(raw === ''){
+    valNode.textContent = '';
+    statusNode.textContent = 'Enter a value';
+    statusNode.className = 'answer-status pending';
+    return;
+  }
+  const guess = parseFloat(raw);
+  if(!isFinite(guess)){
+    valNode.textContent = '';
+    statusNode.textContent = 'Enter a number';
+    statusNode.className = 'answer-status incorrect';
+    return;
+  }
+  const shown = revealLabel ? `${revealLabel} = ${fmt(correctValue)}` : fmt(correctValue);
+  valNode.textContent = shown;
+  const tol = Math.max(Math.abs(correctValue)*0.10, 0.10);
+  const ok = Math.abs(guess - correctValue) <= tol;
+  statusNode.textContent = ok ? 'Correct within ±10%' : 'Outside ±10%';
+  statusNode.className = `answer-status ${ok ? 'correct' : 'incorrect'}`;
+}
+
+function updateAnswerChecks(f){
+  setAnswerFeedback('r1Guess','r1Val','r1Status',f.R1,true,'R₁');
+  if(state.support==='cantilever') setAnswerFeedback('r2Guess','r2Val','r2Status',0,false,'R₂');
+  else setAnswerFeedback('r2Guess','r2Val','r2Status',f.R2,true,'R₂');
+  if(state.support==='cantilever') setAnswerFeedback('mfixGuess','mfixVal','mfixStatus',f.Mfix,true,'M');
+  else setAnswerFeedback('mfixGuess','mfixVal','mfixStatus',0,false,'M');
+}
+function loadListHtml(){
+  const host = el('loadList');
+  if(state.loads.length===0){
+    host.innerHTML = `<div class="load-item"><div><b>No loads yet</b><small>Add a point load or distributed load to begin.</small></div></div>`;
+    return;
+  }
+  host.innerHTML = '';
+  state.loads.forEach((ld, idx) => {
+    const row = document.createElement('div');
+    row.className = 'load-item';
+    row.innerHTML = `<div><b>${ld.type==='point' ? 'Point load' : (ld.type==='udl' ? 'Distributed load' : 'Point moment')}</b>
+      <small>${ld.type==='point' ? `P = ${fmt(ld.P)} at x = ${fmt(ld.x)}` : (ld.type==='udl' ? `w = ${fmt(ld.w)} from x = ${fmt(ld.a)} to x = ${fmt(ld.b)}` : `M = ${fmt(ld.M)} at x = ${fmt(ld.x)}`)}</small></div>
+      <button class="secondary" style="width:auto;padding:9px 12px" onclick="removeLoad(${idx})">Remove</button>`;
+    host.appendChild(row);
+  });
+}
+window.removeLoad = function(i){ state.loads.splice(i,1); state.showDeflection = false; loadListHtml(); render(); };
+
+function addPointLoad(){
+  const P = parseFloat(el('pointMag').value);
+  const x = parseFloat(el('pointX').value);
+  if(!isFinite(P) || Math.abs(P) < 1e-12 || !(x>=0 && x<=state.L)) return alert('Enter a nonzero point load magnitude and a location within the beam length.');
+  state.loads.push({type:'point', P, x});
+  state.showDeflection = false;
+  loadListHtml(); render();
+}
+function addUdl(){
+  const w = parseFloat(el('udlMag').value);
+  const a = parseFloat(el('udlStart').value);
+  const b = parseFloat(el('udlEnd').value);
+  if(!isFinite(w) || Math.abs(w) < 1e-12 || !(a>=0) || !(b<=state.L) || !(b>a)) return alert('Enter a nonzero distributed load magnitude and a valid range 0 ≤ x- < x+ ≤ L.');
+  state.loads.push({type:'udl', w, a, b});
+  state.showDeflection = false;
+  loadListHtml(); render();
+}
+function addPointMoment(){
+  const M = parseFloat(el('pointMomentMag').value);
+  const x = parseFloat(el('pointMomentX').value);
+  if(!isFinite(M) || Math.abs(M) < 1e-12 || !(x>=0 && x<=state.L)) return alert('Enter a nonzero point moment magnitude and a location within the beam length.');
+  state.loads.push({type:'moment', M, x});
+  state.showDeflection = false;
+  loadListHtml(); render();
+}
+
+
+function drawPendingInputs(y, maxForce){
+  let out = '';
+  const pointMag = parseFloat(el('pointMag').value || 0);
+  const pointX = parseFloat(el('pointX').value || 0);
+  if(Math.abs(pointMag) > 1e-12 && pointX >= 0 && pointX <= state.L){
+    const x = mapX(pointX);
+    const L = scaledArrowLength(pointMag, maxForce, 14, 40);
+    out += drawForceArrow(x, y, pointMag, L, '#fca5a5');
+  }
+  const w = parseFloat(el('udlMag').value || 0);
+  const a = parseFloat(el('udlStart').value || 0);
+  const b = parseFloat(el('udlEnd').value || 0);
+  if(Math.abs(w) > 1e-12 && b > a){
+    const x1 = mapX(a), x2 = mapX(b);
+    const L = scaledArrowLength(w*(b-a), maxForce, 14, 28);
+    const lineY = w >= 0 ? y - (L + 22) : y + 22;
+    out += `<line x1="${x1}" y1="${lineY}" x2="${x2}" y2="${lineY}" stroke="#fca5a5" stroke-width="3" stroke-dasharray="6 6"/>`;
+  }
+  const momentMag = parseFloat(el('pointMomentMag').value || 0);
+  const momentX = parseFloat(el('pointMomentX').value || 0);
+  if(Math.abs(momentMag) > 1e-12 && momentX >= 0 && momentX <= state.L){
+    out += drawMomentArrow(mapX(momentX), y - 34, 18, momentMag >= 0 ? 1 : -1, '#fca5a5', '', 0.55);
+  }
+  return out;
+}
+
+function drawMain(){
+  const f = computeFields();
+  const yBeam = 150;
+  const x0 = mapX(0), xL = mapX(state.L);
+  const maxV = Math.max(maxAbs(f.V), 1e-6);
+  const maxM = Math.max(maxAbs(f.M), 1e-6);
+  const maxForceVisual = Math.max(1e-6, ...state.loads.map(ld => ld.type==='point' ? Math.abs(ld.P) : (ld.type==='udl' ? Math.abs(ld.w*(ld.b-ld.a)) : Math.abs(ld.M))), Math.abs(f.R1), Math.abs(f.R2 || 0), Math.abs(f.Mfix || 0));
+  const defl = state.showDeflection ? computeDeflection(f) : null;
+  const maxD = defl ? Math.max(maxAbs(defl), 1e-6) : 1;
+
+  updateAnswerChecks(f);
+
+  let html = `
+  <defs>
+    <marker id="arrowRedSmall" markerWidth="4" markerHeight="4" refX="2" refY="2" orient="auto">
+      <path d="M0,0 L4,2 L0,4 z" fill="#dc2626"></path>
+    </marker>
+    <marker id="axisArrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#94a3b8"></path>
+    </marker>
+        <marker id="momentArrowHead" markerWidth="4" markerHeight="4" refX="3.2" refY="2" orient="auto"><path d="M0,0 L4,2 L0,4 z" fill="context-stroke"/></marker>
+      </defs>
+  <text x="28" y="34" font-size="22" font-weight="800" fill="#0f172a">Interactive beam response</text>
+  `;
+
+  html += `<line x1="${x0}" y1="${yBeam}" x2="${xL}" y2="${yBeam}" stroke="#2563eb" stroke-width="12" stroke-linecap="round"/>`;
+  html += drawMainSupports(yBeam);
+  html += drawLoads(yBeam, maxForceVisual);
+  html += drawPendingInputs(yBeam, maxForceVisual);
+  html += drawReactions(yBeam, f, maxForceVisual);
+
+  html += `<text x="32" y="292" font-size="16" font-weight="700" fill="#0f172a">Shear force diagram V(x)</text>`;
+  html += `<text x="32" y="582" font-size="16" font-weight="700" fill="#0f172a">Bending moment diagram M(x)</text>`;
+  html += `<text x="32" y="872" font-size="16" font-weight="700" fill="#0f172a">Deflection view y(x)</text>`;
+
+  const shearBase = 390;
+  html += diagramAxes(x0, xL, shearBase, 130, 'V');
+  html += polylineFromField(f.x, f.V, shearBase, 130/maxV, '#059669', true);
+
+  const momentBase = 680;
+  html += diagramAxes(x0, xL, momentBase, 135, 'M');
+  html += polylineFromField(f.x, f.M, momentBase, 135/maxM, '#d97706', true);
+
+  const defBase = 970;
+  html += `<line x1="${x0}" y1="${defBase}" x2="${xL}" y2="${defBase}" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="8 8"/>`;
+  if(defl){
+    html += polylineFromField(f.x, defl, defBase, 90/maxD, '#1d4ed8', false, 6);
+    html += drawDeflectionMarkers(defl, defBase, 90/maxD);
+  } else {
+    html += `<text x="${x0+20}" y="${defBase-18}" font-size="14" fill="#64748b">Click “Deflection” after adding loads.</text>`;
+  }
+
+  html += axisTicks();
+  svg.innerHTML = html;
+}
+function drawMainSupports(y){
+  const s = state.supports[state.support];
+  let out = '';
+  out += drawSupportMain(s.typeA, mapX(s.xA), y, 'left');
+  if(s.typeB && s.xB!==null) out += drawSupportMain(s.typeB, mapX(s.xB), y, 'right');
+  if(s.typeB==='free') out += `<circle cx="${mapX(state.L)}" cy="${y}" r="6" fill="#94a3b8"/>`;
+  return out;
+}
+function drawSupportMain(type, x, y, side){
+  if(type==='pin') return `<polygon points="${x-24},${y+30} ${x+24},${y+30} ${x},${y+3}" fill="#475569"></polygon><circle cx="${x-10}" cy="${y+40}" r="4" fill="#94a3b8"/><circle cx="${x+10}" cy="${y+40}" r="4" fill="#94a3b8"/>`;
+  if(type==='roller') return `<polygon points="${x-24},${y+24} ${x+24},${y+24} ${x},${y+3}" fill="#475569"></polygon><circle cx="${x-10}" cy="${y+34}" r="4" fill="#94a3b8"/><circle cx="${x+10}" cy="${y+34}" r="4" fill="#94a3b8"/>`;
+  if(type==='fixed') return `<rect x="${x-12}" y="${y-42}" width="14" height="88" rx="2" fill="#334155"></rect>${Array.from({length:8}).map((_,i)=>`<line x1="${x-12}" y1="${y-36+i*10}" x2="${x-26}" y2="${y-30+i*10}" stroke="#64748b" stroke-width="2"/>`).join('')}`;
+  return '';
+}
+function drawArrowLine(x, yStart, yEnd, color, marker){
+  return `<line x1="${x}" y1="${yStart}" x2="${x}" y2="${yEnd}" stroke="${color}" stroke-width="2.5" marker-end="url(#${marker})"/>`;
+}
+function drawLineWithArrowHead(x, yStart, yEnd, color, size=6){
+  const dir = yEnd >= yStart ? 1 : -1;
+  const tipY = yEnd;
+  const baseY = tipY - dir*size;
+  return `<line x1="${x}" y1="${yStart}" x2="${x}" y2="${baseY}" stroke="${color}" stroke-width="2.5"/>`
+    + `<polygon points="${x},${tipY} ${x-size*0.75},${baseY} ${x+size*0.75},${baseY}" fill="${color}"></polygon>`;
+}
+function drawForceArrow(x, yBeam, val, L, color){
+  if(val >= 0){
+    return drawLineWithArrowHead(x, yBeam-(L+8), yBeam-8, color, 5);
+  }
+  return drawLineWithArrowHead(x, yBeam+(L+8), yBeam+8, color, 5);
+}
+function scaledArrowLength(val, maxForce, minLen=20, maxLen=72){
+  const r = Math.max(0, Math.min(1, Math.abs(val)/maxForce));
+  return minLen + r*(maxLen-minLen);
+}
+function drawLoads(y, maxForce){
+  let out = '';
+  state.loads.forEach(ld => {
+    if(ld.type==='point'){
+      const x = mapX(ld.x);
+      const L = scaledArrowLength(ld.P, maxForce, 18, 68);
+      out += drawForceArrow(x, y, ld.P, L, '#dc2626');
+      const labelY = ld.P >= 0 ? y - (L + 14) : y + (L + 24);
+      out += `<text x="${x+6}" y="${labelY}" font-size="8" font-weight="700" fill="#dc2626">P = ${fmt(ld.P)}</text>`;
+    } else if(ld.type==='udl') {
+      const x1 = mapX(ld.a), x2 = mapX(ld.b);
+      const resultant = ld.w * (ld.b - ld.a);
+      const L = scaledArrowLength(resultant, maxForce, 16, 48);
+      const count = Math.max(3, Math.min(9, Math.round((ld.b-ld.a)/1.15)+1));
+      const lineY = ld.w >= 0 ? y - (L + 20) : y + 20;
+      out += `<line x1="${x1}" y1="${lineY}" x2="${x2}" y2="${lineY}" stroke="#dc2626" stroke-width="3" stroke-dasharray="6 6"/>`;
+      for(let j=0;j<count;j++){
+        const t = ld.a + (ld.b-ld.a) * (j/(count-1));
+        const xx = mapX(t);
+        if(ld.w >= 0) out += drawLineWithArrowHead(xx, lineY, y-8, '#dc2626', 5);
+        else out += drawLineWithArrowHead(xx, lineY, y+8, '#dc2626', 5);
+      }
+      const labelY = ld.w >= 0 ? lineY - 6 : lineY + 18;
+      out += `<text x="${x1+6}" y="${labelY}" font-size="8" font-weight="700" fill="#dc2626">w = ${fmt(ld.w)}</text>`;
+    } else {
+      const x = mapX(ld.x);
+      out += drawMomentArrow(x, y - 36, 18, ld.M >= 0 ? 1 : -1, '#dc2626', `M = ${fmt(ld.M)}`, 1);
+    }
+  });
+  return out;
+}
+function drawReactionArrow(x, y, val, maxForce, label, reveal=false){
+  const L = scaledArrowLength(val, maxForce, 18, 64);
+  const up = val >= 0;
+  const yTail = y + (up ? L : -L);
+  const yTip = y + (up ? 10 : -10);
+  const textY = up ? yTail + 10 : yTail - 6;
+  const text = reveal ? `<text x="${x+6}" y="${textY}" font-size="8" font-weight="700" fill="#059669">${label}${fmt(val)}</text>` : '';
+  return `${drawLineWithArrowHead(x, yTail, yTip, '#059669', 5)}${text}`;
+}
+function drawMomentArrow(x, y, r, sign, color, label='', labelScale=1, labelBelow=false){
+  const topX = x, topY = y - r;
+  const botX = x, botY = y + r;
+  // Negative = CCW, shown by traversing the left semicircle from top to bottom.
+  // Positive = CW, shown by traversing the same left semicircle from bottom to top.
+  const d = sign < 0
+    ? `M ${topX} ${topY} A ${r} ${r} 0 0 0 ${botX} ${botY}`
+    : `M ${botX} ${botY} A ${r} ${r} 0 0 1 ${topX} ${topY}`;
+  const path = `<path d="${d}" fill="none" stroke="${color}" stroke-width="3" marker-end="url(#momentArrowHead)"/>`;
+  const text = label ? (labelBelow
+    ? `<text x="${x}" y="${y + r + 18}" text-anchor="middle" font-size="${8*labelScale}" font-weight="700" fill="${color}">${label}</text>`
+    : `<text x="${x + r + 10}" y="${y-2}" font-size="${8*labelScale}" font-weight="700" fill="${color}">${label}</text>`) : '';
+  return path + text;
+}
+function drawReactions(y, f, maxForce){
+  let out = '';
+  const s = state.supports[state.support];
+  const showR1 = el('r1Guess').value.trim() !== '';
+  const showR2 = el('r2Guess').value.trim() !== '';
+  const showM = el('mfixGuess').value.trim() !== '';
+  out += drawReactionArrow(mapX(s.xA), y, f.R1, maxForce, state.support==='cantilever'?'V = ':'R₁ = ', showR1);
+  if(state.support!=='cantilever'){
+    out += drawReactionArrow(mapX(s.xB), y, f.R2, maxForce, 'R₂ = ', showR2);
+  } else if(showM) {
+    out += drawMomentArrow(mapX(0)-34, y, 18, f.Mfix >= 0 ? 1 : -1, '#a16207', `M = ${fmt(f.Mfix)}`, 1, true);
+  } else {
+    out += drawMomentArrow(mapX(0)-34, y, 18, f.Mfix >= 0 ? 1 : -1, '#a16207', '', 1, true);
+  }
+  return out;
+}
+
+function diagramAxes(x0, xL, baseY, halfHeight, vLabel){
+  return `
+    <line x1="${x0}" y1="${baseY}" x2="${xL+24}" y2="${baseY}" stroke="#94a3b8" stroke-width="2" marker-end="url(#axisArrow)"/>
+    <line x1="${x0}" y1="${baseY+halfHeight+12}" x2="${x0}" y2="${baseY-halfHeight-16}" stroke="#94a3b8" stroke-width="2" marker-end="url(#axisArrow)"/>
+    <text x="${xL+34}" y="${baseY+5}" font-size="13" fill="#64748b">x</text>
+    <text x="${x0-16}" y="${baseY-halfHeight-20}" font-size="13" fill="#64748b">${vLabel}</text>`;
+}
+
+function polylineFromField(xVals, vals, baseY, scale, color, fillArea, width=4){
+  let path = '';
+  for(let i=0;i<xVals.length;i++){
+    const X = mapX(xVals[i]);
+    const Y = baseY - vals[i]*scale;
+    path += (i===0?`M ${X} ${Y}`:` L ${X} ${Y}`);
+  }
+  let out='';
+  if(fillArea){
+    out += `<path d="${path} L ${mapX(xVals[xVals.length-1])} ${baseY} L ${mapX(xVals[0])} ${baseY} Z" fill="${color}" opacity="0.14"></path>`;
+  }
+  out += `<path d="${path}" fill="none" stroke="${color}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round"></path>`;
+  return out;
+}
+function drawDeflectionMarkers(defl, baseY, scale){
+  const s = state.supports[state.support];
+  let out = '';
+  if(state.support==='cantilever'){
+    const tipY = baseY - defl[defl.length-1]*scale;
+    out += `<circle cx="${mapX(state.L)}" cy="${tipY}" r="7" fill="#2563eb" opacity=".85"></circle>`;
+  } else {
+    const ya = baseY - defl[nearestIndex(Array.from({length:defl.length},(_,i)=>i*(state.L/(defl.length-1))), s.xA)]*scale;
+    const yb = baseY - defl[nearestIndex(Array.from({length:defl.length},(_,i)=>i*(state.L/(defl.length-1))), s.xB)]*scale;
+    out += `<circle cx="${mapX(s.xA)}" cy="${ya}" r="5" fill="#0f172a"></circle>`;
+    out += `<circle cx="${mapX(s.xB)}" cy="${yb}" r="5" fill="#0f172a"></circle>`;
+  }
+  return out;
+}
+function axisTicks(){
+  let out='';
+  const y0 = 1010;
+  for(let i=0;i<=10;i++){
+    const X = mapX(i);
+    out += `<line x1="${X}" y1="${y0-6}" x2="${X}" y2="${y0+6}" stroke="#94a3b8" stroke-width="2"/>`;
+    out += `<text x="${X}" y="${y0+24}" text-anchor="middle" font-size="13" fill="#64748b">${i}</text>`;
+  }
+  out += `<text x="${mapX(10)+20}" y="${y0+24}" font-size="13" fill="#64748b">x</text>`;
+  return out;
+}
+function render(){ drawMain(); }
+
+el('addPointBtn').onclick = addPointLoad;
+el('addUdlBtn').onclick = addUdl;
+el('addPointMomentBtn').onclick = addPointMoment;
+el('clearBtn').onclick = () => { state.loads = []; state.showDeflection = false; loadListHtml(); render(); };
+el('deflectionBtn').onclick = () => { state.showDeflection = true; render(); };
+
+el('pointXRange').oninput = () => { syncPointControls('range'); render(); };
+el('pointX').oninput = () => { syncPointControls('number'); render(); };
+el('pointMomentXRange').oninput = () => { syncPointMomentControls('range'); render(); };
+el('pointMomentX').oninput = () => { syncPointMomentControls('number'); render(); };
+el('udlStartRange').oninput = () => { syncUdlControls('rangeStart'); render(); };
+el('udlEndRange').oninput = () => { syncUdlControls('rangeEnd'); render(); };
+el('udlStart').oninput = () => { syncUdlControls('numberStart'); render(); };
+el('udlEnd').oninput = () => { syncUdlControls('numberEnd'); render(); };
+
+el('rollerXRange').oninput = () => {
+  const x = clamp(parseFloat(el('rollerXRange').value || state.L), 0.5, state.L);
+  state.supports.simple_alt.xB = x;
+  el('rollerXReadout').textContent = `x = ${x.toFixed(1)}`;
+  render();
+};
+
+['r1Guess','r2Guess','mfixGuess'].forEach(id => el(id).addEventListener('input', render));
+
+buildSupportCards();
+updateRollerControl();
+loadListHtml();
+syncPointControls('number');
+syncPointMomentControls('number');
+syncUdlControls('numberStart');
+render();
+</script>
+</body>
+</html>
