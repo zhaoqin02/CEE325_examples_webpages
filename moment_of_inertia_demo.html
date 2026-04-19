@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Moment of Inertia Interactive Demo</title>
+  <style>
+    :root{
+      --bg:#f8fafc;
+      --card:#ffffff;
+      --text:#0f172a;
+      --muted:#475569;
+      --line:#e2e8f0;
+      --accent:#2563eb;
+      --accent2:#f59e0b;
+      --good:#16a34a;
+      --bad:#dc2626;
+      --shadow:0 10px 30px rgba(15,23,42,0.08);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(180deg,#f8fafc 0%,#eef2ff 100%);color:var(--text)}
+    .page{max-width:1380px;margin:0 auto;padding:22px}
+    .layout{display:grid;grid-template-columns:360px 1fr;gap:20px}
+    .card{background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:28px;box-shadow:var(--shadow)}
+    .panel{padding:22px}
+    h1,h2,h3{margin:0}
+    .hero h1{font-size:2rem;margin-bottom:8px}
+    .hero p{margin:0;color:var(--muted);line-height:1.65}
+    .controls{display:flex;flex-direction:column;gap:16px}
+    .section{border:1px solid var(--line);border-radius:20px;padding:16px;background:#fff}
+    .section h3{font-size:1rem;margin-bottom:10px}
+    label{display:block;font-size:.9rem;font-weight:700;margin-bottom:6px}
+    .small{font-size:.82rem;color:var(--muted);line-height:1.55}
+    select,input[type=number]{width:100%;padding:10px 12px;border:1px solid #cbd5e1;border-radius:14px;font-size:14px}
+    input[type=range]{width:100%}
+    .row{display:grid;grid-template-columns:1fr 92px;gap:10px;align-items:center;margin-bottom:10px}
+    .row.tight{grid-template-columns:1fr 74px}
+    .badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#dbeafe;color:var(--accent);font-weight:700;font-size:.78rem}
+    .btns{display:flex;gap:10px;flex-wrap:wrap}
+    button{border:none;border-radius:16px;padding:10px 14px;font-weight:700;cursor:pointer}
+    .primary{background:var(--accent);color:#fff}
+    .secondary{background:#f1f5f9;color:var(--text);border:1px solid var(--line)}
+    .status{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
+    .status .mini{padding:16px;border-radius:22px;background:#fff;border:1px solid var(--line);min-height:106px}
+    .status .value{font-size:1.6rem;font-weight:800;margin-top:10px}
+    .main{display:grid;grid-template-rows:auto auto;gap:20px}
+    .svgWrap{padding:18px}
+    svg{width:100%;height:auto;display:block}
+    .split{display:grid;grid-template-columns:1.15fr .85fr;gap:18px}
+    table{width:100%;border-collapse:collapse;font-size:.92rem}
+    th,td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:center}
+    th{background:#f8fafc}
+    .formula{padding:18px 18px 6px}
+    .formulaBox{background:#fff;border:1px solid var(--line);border-radius:20px;padding:16px;line-height:1.75}
+    .formulaBox .eq{font-family:Georgia,serif;font-size:1.05rem}
+    .quiz{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+    .quizCard{border:1px solid var(--line);border-radius:18px;padding:14px;background:#fff}
+    .quizCard input{margin-top:8px}
+    .feedback{font-size:.88rem;font-weight:700;margin-top:8px;min-height:20px}
+    .good{color:var(--good)} .bad{color:var(--bad)}
+    .foot{position:fixed;right:14px;bottom:10px;background:rgba(255,255,255,.88);border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-size:12px;color:#334155;box-shadow:0 6px 18px rgba(15,23,42,.08)}
+    @media (max-width: 1100px){.layout{grid-template-columns:1fr}.split{grid-template-columns:1fr}.status{grid-template-columns:1fr 1fr 1fr}}
+    @media (max-width: 760px){.status,.quiz{grid-template-columns:1fr}.page{padding:12px}}
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="card hero panel" style="margin-bottom:20px">
+      <div class="badge">Neutral Axis · Superposition · Composite Sections</div>
+      <h1 style="margin-top:10px;">Interactive Moment of Inertia Demo</h1>
+      <p>Practice how the neutral axis is identified and how the section moment of inertia is built from simple pieces. Use the neutral-axis guess slider first, then reveal the result and inspect each area contribution.</p>
+    </div>
+
+    <div class="layout">
+      <div class="card panel controls">
+        <div class="section">
+          <h3>Section family</h3>
+          <label for="mode">Section type</label>
+          <select id="mode">
+            <option value="rectangle">Single rectangle</option>
+            <option value="tsection">T-section (same material)</option>
+            <option value="threeLayer">Three-layer composite stack</option>
+          </select>
+          <div class="small" style="margin-top:10px">The page uses the centroid relation for single-material sections and the E-weighted neutral-axis / effective inertia idea for composite sections.</div>
+        </div>
+
+        <div class="section" id="dimsBox">
+          <h3>Dimensions</h3>
+          <div id="controlsContainer"></div>
+        </div>
+
+        <div class="section" id="materialBox">
+          <h3>Material settings</h3>
+          <div id="materialsContainer"></div>
+        </div>
+
+        <div class="section">
+          <h3>Neutral axis guess</h3>
+          <label for="guessSlider">Move the dashed line and guess the N.A. location from the bottom</label>
+          <input type="range" id="guessSlider" min="0" max="200" step="1" value="80">
+          <div class="small">Dashed orange line = your guess. Solid blue line = revealed neutral axis.</div>
+          <div class="btns" style="margin-top:12px">
+            <button class="primary" id="revealBtn">Reveal solution</button>
+            <button class="secondary" id="resetBtn">Reset guess</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="main">
+        <div class="card svgWrap">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px 14px;">
+            <h2>Cross-section and superposition view</h2>
+            <div class="badge" id="modeBadge">Single material</div>
+          </div>
+          <svg id="sectionSvg" viewBox="0 0 900 520" aria-label="Cross section"></svg>
+          <div class="status">
+            <div class="mini">
+              <div class="small">Neutral axis from bottom</div>
+              <div class="value" id="naValue">—</div>
+            </div>
+            <div class="mini">
+              <div class="small">Section result</div>
+              <div class="value" id="iValue">—</div>
+            </div>
+            <div class="mini">
+              <div class="small">Interpretation</div>
+              <div class="value" id="modeSummary" style="font-size:1rem;line-height:1.35">Guess first, then reveal.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="split">
+          <div class="card formula">
+            <h2 style="margin-bottom:12px">Key connection</h2>
+            <div class="formulaBox" id="formulaBox"></div>
+            <div class="quiz">
+              <div class="quizCard">
+                <div style="font-weight:700">Your guess for N.A. from bottom</div>
+                <input id="naInput" type="number" step="0.1" placeholder="enter ȳ">
+                <div class="feedback" id="naFeedback"></div>
+              </div>
+              <div class="quizCard">
+                <div style="font-weight:700">Your guess for I / Ieff</div>
+                <input id="iInput" type="number" step="0.1" placeholder="enter I">
+                <div class="feedback" id="iFeedback"></div>
+              </div>
+            </div>
+          </div>
+          <div class="card panel">
+            <h2 style="margin-bottom:12px">Contribution table</h2>
+            <div class="small" style="margin-bottom:10px">Each simple piece contributes its own centroidal inertia plus a parallel-axis term.</div>
+            <table id="contribTable"></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">Zhao Qin at SU and ChatGPT 2026</div>
+
+  <script>
+    const controlsContainer = document.getElementById('controlsContainer');
+    const materialsContainer = document.getElementById('materialsContainer');
+    const sectionSvg = document.getElementById('sectionSvg');
+    const modeSel = document.getElementById('mode');
+    const guessSlider = document.getElementById('guessSlider');
+    const revealBtn = document.getElementById('revealBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const naValue = document.getElementById('naValue');
+    const iValue = document.getElementById('iValue');
+    const modeSummary = document.getElementById('modeSummary');
+    const formulaBox = document.getElementById('formulaBox');
+    const contribTable = document.getElementById('contribTable');
+    const modeBadge = document.getElementById('modeBadge');
+    const naInput = document.getElementById('naInput');
+    const iInput = document.getElementById('iInput');
+    const naFeedback = document.getElementById('naFeedback');
+    const iFeedback = document.getElementById('iFeedback');
+
+    let revealed = false;
+
+    const state = {
+      mode: 'rectangle',
+      rectangle: {b: 120, h: 160},
+      tsection: {bf: 180, tf: 40, tw: 50, hw: 150},
+      threeLayer: {w1: 180, h1: 50, w2: 110, h2: 80, w3: 200, h3: 60, E1: 1.0, E2: 2.0, E3: 0.8},
+    };
+
+    function fmt(v){ return (Math.round(v*100)/100).toFixed(2); }
+    function within10(user, trueVal){
+      const tol = Math.max(Math.abs(trueVal)*0.1, 0.05);
+      return Math.abs(user - trueVal) <= tol;
+    }
+
+    function renderControls(){
+      const m = state.mode;
+      let html = '';
+      let matHtml = '';
+      if(m === 'rectangle'){
+        html += sliderRow('Width b', 'rectangle.b', 60, 220, 1, state.rectangle.b);
+        html += sliderRow('Height h', 'rectangle.h', 60, 240, 1, state.rectangle.h);
+        matHtml = '<div class="small">Single material. The neutral axis passes through the geometric centroid.</div>';
+        modeBadge.textContent = 'Single material';
+      } else if(m === 'tsection'){
+        html += sliderRow('Flange width bf', 'tsection.bf', 100, 250, 1, state.tsection.bf);
+        html += sliderRow('Flange thickness tf', 'tsection.tf', 20, 80, 1, state.tsection.tf);
+        html += sliderRow('Web thickness tw', 'tsection.tw', 20, 100, 1, state.tsection.tw);
+        html += sliderRow('Web height hw', 'tsection.hw', 80, 220, 1, state.tsection.hw);
+        matHtml = '<div class="small">Same material in both pieces. Use area centroid first, then parallel-axis theorem.</div>';
+        modeBadge.textContent = 'Superposition';
+      } else {
+        html += sliderRow('Top width', 'threeLayer.w1', 100, 240, 1, state.threeLayer.w1);
+        html += sliderRow('Top height', 'threeLayer.h1', 25, 90, 1, state.threeLayer.h1);
+        html += sliderRow('Middle width', 'threeLayer.w2', 70, 200, 1, state.threeLayer.w2);
+        html += sliderRow('Middle height', 'threeLayer.h2', 35, 120, 1, state.threeLayer.h2);
+        html += sliderRow('Bottom width', 'threeLayer.w3', 100, 260, 1, state.threeLayer.w3);
+        html += sliderRow('Bottom height', 'threeLayer.h3', 25, 100, 1, state.threeLayer.h3);
+        matHtml += sliderRow('Top E ratio n1', 'threeLayer.E1', 0.4, 3.0, 0.05, state.threeLayer.E1);
+        matHtml += sliderRow('Middle E ratio n2', 'threeLayer.E2', 0.4, 3.0, 0.05, state.threeLayer.E2);
+        matHtml += sliderRow('Bottom E ratio n3', 'threeLayer.E3', 0.4, 3.0, 0.05, state.threeLayer.E3);
+        matHtml += '<div class="small">Composite mode: the neutral axis uses an E-weighted centroid and the section result is an effective inertia.</div>';
+        modeBadge.textContent = 'Composite';
+      }
+      controlsContainer.innerHTML = html;
+      materialsContainer.innerHTML = matHtml;
+      document.querySelectorAll('[data-key]').forEach(el => {
+        el.addEventListener('input', e => {
+          const key = e.target.dataset.key;
+          setStateByPath(key, parseFloat(e.target.value));
+          syncTwinInputs(key, e.target.value);
+          render();
+        });
+      });
+    }
+
+    function syncTwinInputs(key, val){
+      document.querySelectorAll(`[data-key="${key}"]`).forEach(el => {
+        if(el.value != val) el.value = val;
+      });
+    }
+
+    function sliderRow(label, key, min, max, step, value){
+      return `<label>${label}</label>
+        <div class="row">
+          <input type="range" min="${min}" max="${max}" step="${step}" value="${value}" data-key="${key}">
+          <input type="number" min="${min}" max="${max}" step="${step}" value="${value}" data-key="${key}">
+        </div>`;
+    }
+
+    function setStateByPath(path, value){
+      const parts = path.split('.');
+      if(parts.length !== 2) return;
+      state[parts[0]][parts[1]] = value;
+    }
+
+    function compute(){
+      if(state.mode === 'rectangle') return computeRectangle();
+      if(state.mode === 'tsection') return computeT();
+      return computeComposite();
+    }
+
+    function computeRectangle(){
+      const {b,h} = state.rectangle;
+      const A = b*h;
+      const y = h/2;
+      const Ibar = b*Math.pow(h,3)/12;
+      return {
+        totalHeight: h,
+        totalWidth: b,
+        na: y,
+        I: Ibar,
+        kind: 'I',
+        pieces: [{name:'Rect', x:0, y0:0, w:b, h:h, A, yc:y, n:1, Ibar, d:0, contrib:Ibar, color:'#60a5fa'}],
+        summary:'N.A. passes through the centroid of the rectangle.'
+      };
+    }
+
+    function computeT(){
+      const {bf,tf,tw,hw} = state.tsection;
+      const A1 = bf*tf, y1 = hw + tf/2;
+      const A2 = tw*hw, y2 = hw/2;
+      const At = A1+A2;
+      const ybar = (A1*y1 + A2*y2)/At;
+      const I1bar = bf*Math.pow(tf,3)/12;
+      const I2bar = tw*Math.pow(hw,3)/12;
+      const d1 = y1-ybar, d2=y2-ybar;
+      const c1 = I1bar + A1*d1*d1;
+      const c2 = I2bar + A2*d2*d2;
+      return {
+        totalHeight: hw+tf,
+        totalWidth: Math.max(bf,tw),
+        na:ybar,
+        I:c1+c2,
+        kind:'I',
+        pieces:[
+          {name:'Flange', x:(Math.max(bf,tw)-bf)/2, y0:hw, w:bf, h:tf, A:A1, yc:y1, n:1, Ibar:I1bar, d:d1, contrib:c1, color:'#fbbf24'},
+          {name:'Web', x:(Math.max(bf,tw)-tw)/2, y0:0, w:tw, h:hw, A:A2, yc:y2, n:1, Ibar:I2bar, d:d2, contrib:c2, color:'#60a5fa'}
+        ],
+        summary:'Use area centroid first, then add centroidal inertia + A d² for each piece.'
+      };
+    }
+
+    function computeComposite(){
+      const s = state.threeLayer;
+      const y3 = s.h3/2;
+      const y2 = s.h3 + s.h2/2;
+      const y1 = s.h3 + s.h2 + s.h1/2;
+      const A1 = s.w1*s.h1, A2=s.w2*s.h2, A3=s.w3*s.h3;
+      const ybar = (s.E1*A1*y1 + s.E2*A2*y2 + s.E3*A3*y3)/(s.E1*A1 + s.E2*A2 + s.E3*A3);
+      const I1bar = s.w1*Math.pow(s.h1,3)/12;
+      const I2bar = s.w2*Math.pow(s.h2,3)/12;
+      const I3bar = s.w3*Math.pow(s.h3,3)/12;
+      const d1 = y1-ybar, d2 = y2-ybar, d3 = y3-ybar;
+      const c1 = s.E1*(I1bar + A1*d1*d1);
+      const c2 = s.E2*(I2bar + A2*d2*d2);
+      const c3 = s.E3*(I3bar + A3*d3*d3);
+      const W = Math.max(s.w1,s.w2,s.w3);
+      return {
+        totalHeight: s.h1+s.h2+s.h3,
+        totalWidth: W,
+        na:ybar,
+        I:c1+c2+c3,
+        kind:'Ieff',
+        pieces:[
+          {name:'Top', x:(W-s.w1)/2, y0:s.h3+s.h2, w:s.w1, h:s.h1, A:A1, yc:y1, n:s.E1, Ibar:I1bar, d:d1, contrib:c1, color:'#fb7185'},
+          {name:'Middle', x:(W-s.w2)/2, y0:s.h3, w:s.w2, h:s.h2, A:A2, yc:y2, n:s.E2, Ibar:I2bar, d:d2, contrib:c2, color:'#60a5fa'},
+          {name:'Bottom', x:(W-s.w3)/2, y0:0, w:s.w3, h:s.h3, A:A3, yc:y3, n:s.E3, Ibar:I3bar, d:d3, contrib:c3, color:'#34d399'}
+        ],
+        summary:'Different materials shift the N.A. by E-weighting the area centroid and produce an effective inertia.'
+      };
+    }
+
+    function render(){
+      const res = compute();
+      const totalH = res.totalHeight;
+      guessSlider.max = totalH;
+      if(parseFloat(guessSlider.value) > totalH) guessSlider.value = totalH/2;
+      const guess = parseFloat(guessSlider.value);
+      drawSection(res, guess, revealed);
+      naValue.textContent = revealed ? `${fmt(res.na)}` : 'hidden';
+      iValue.textContent = revealed ? `${res.kind} = ${fmt(res.I)}` : 'hidden';
+      modeSummary.textContent = revealed ? res.summary : 'Guess first, then reveal.';
+      renderFormula(res);
+      renderTable(res);
+      updateQuiz(res);
+    }
+
+    function renderFormula(res){
+      if(state.mode === 'threeLayer'){
+        formulaBox.innerHTML = `
+          <div class="eq">\u0305y = (\u2211 E<sub>i</sub>A<sub>i</sub>y<sub>i</sub>) / (\u2211 E<sub>i</sub>A<sub>i</sub>)</div>
+          <div class="eq">I<sub>eff</sub> = \u2211 n<sub>i</sub>(\u012a<sub>i</sub> + A<sub>i</sub>d<sub>i</sub><sup>2</sup>)</div>
+          <div class="small">Use an E-weighted neutral axis, then add each transformed contribution.</div>`;
+      } else {
+        formulaBox.innerHTML = `
+          <div class="eq">\u0305y = (\u2211 A<sub>i</sub>y<sub>i</sub>) / (\u2211 A<sub>i</sub>)</div>
+          <div class="eq">I = \u2211 (\u012a<sub>i</sub> + A<sub>i</sub>d<sub>i</sub><sup>2</sup>)</div>
+          <div class="small">First locate the neutral axis, then use the parallel-axis theorem piece by piece.</div>`;
+      }
+    }
+
+    function renderTable(res){
+      let html = '<tr><th>Piece</th><th>A</th><th>y<sub>i</sub></th><th>'+(state.mode==='threeLayer'?'n':'')+'</th><th>Ī</th><th>d</th><th>Contribution</th></tr>';
+      res.pieces.forEach(p => {
+        html += `<tr>
+          <td>${p.name}</td>
+          <td>${fmt(p.A)}</td>
+          <td>${fmt(p.yc)}</td>
+          <td>${state.mode==='threeLayer'?fmt(p.n):'—'}</td>
+          <td>${fmt(p.Ibar)}</td>
+          <td>${fmt(p.d)}</td>
+          <td>${fmt(p.contrib)}</td>
+        </tr>`;
+      });
+      contribTable.innerHTML = html;
+    }
+
+    function updateQuiz(res){
+      const userNA = parseFloat(naInput.value);
+      const userI = parseFloat(iInput.value);
+      naFeedback.className = 'feedback';
+      iFeedback.className = 'feedback';
+      if(Number.isFinite(userNA)){
+        naFeedback.textContent = within10(userNA,res.na) ? `Correct range. True value: ${fmt(res.na)}` : `Not yet. True value: ${fmt(res.na)}`;
+        naFeedback.classList.add(within10(userNA,res.na)?'good':'bad');
+      } else { naFeedback.textContent = ''; }
+      if(Number.isFinite(userI)){
+        iFeedback.textContent = within10(userI,res.I) ? `Correct range. True value: ${fmt(res.I)}` : `Not yet. True value: ${fmt(res.I)}`;
+        iFeedback.classList.add(within10(userI,res.I)?'good':'bad');
+      } else { iFeedback.textContent = ''; }
+    }
+
+    function drawSection(res, guess, showNA){
+      const W = 900, H = 520;
+      const left = 70, bottom = 420;
+      const drawW = 360, drawH = 320;
+      const scale = Math.min(drawW/res.totalWidth, drawH/res.totalHeight);
+      const sx = v => left + (drawW - res.totalWidth*scale)/2 + v*scale;
+      const sy = v => bottom - v*scale;
+      const guessY = sy(guess);
+      const naY = sy(res.na);
+      let svg = `
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="8" refX="5" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#64748b"></path></marker>
+        </defs>
+        <text x="64" y="38" font-size="18" font-weight="700" fill="#0f172a">Interactive section</text>
+        <text x="64" y="64" font-size="13" fill="#475569">Move the dashed line first, then reveal the true neutral axis.</text>
+        <line x1="${left-25}" y1="${bottom}" x2="${left-25}" y2="${bottom-drawH-20}" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+        <line x1="${left-25}" y1="${bottom}" x2="${left+drawW+40}" y2="${bottom}" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)"/>
+        <text x="${left+drawW+50}" y="${bottom+6}" font-size="15" fill="#475569">x</text>
+        <text x="${left-35}" y="${bottom-drawH-26}" font-size="15" fill="#475569">y</text>
+      `;
+
+      res.pieces.forEach((p, idx) => {
+        const x = sx(p.x), y = sy(p.y0 + p.h), w = p.w*scale, h = p.h*scale;
+        svg += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="${p.color}" fill-opacity="0.88" stroke="#1e293b" stroke-width="2"></rect>`;
+        svg += `<circle cx="${sx(p.x + p.w/2)}" cy="${sy(p.yc)}" r="6" fill="#ef4444"></circle>`;
+        svg += `<text x="${sx(p.x + p.w/2)+10}" y="${sy(p.yc)-10}" font-size="14" font-weight="700" fill="#0f172a">${p.name}</text>`;
+      });
+
+      svg += `<line x1="${left-10}" y1="${guessY}" x2="${left+drawW+20}" y2="${guessY}" stroke="#f59e0b" stroke-width="3" stroke-dasharray="8 8"></line>`;
+      svg += `<text x="${left+drawW+30}" y="${guessY+5}" font-size="15" fill="#b45309">guess</text>`;
+      if(showNA){
+        svg += `<line x1="${left-10}" y1="${naY}" x2="${left+drawW+20}" y2="${naY}" stroke="#2563eb" stroke-width="4"></line>`;
+        svg += `<text x="${left+drawW+30}" y="${naY+5}" font-size="15" font-weight="700" fill="#1d4ed8">N.A.</text>`;
+      }
+
+      // show superposition contribution bars on right
+      const tableX = 520, baseY = 105;
+      svg += `<rect x="${tableX-20}" y="78" width="310" height="286" rx="20" fill="#ffffff" stroke="#e2e8f0"></rect>`;
+      svg += `<text x="${tableX}" y="108" font-size="18" font-weight="700" fill="#0f172a">Parallel-axis contributions</text>`;
+      svg += `<text x="${tableX}" y="132" font-size="13" fill="#475569">Each bar shows how much one piece contributes to ${res.kind}.</text>`;
+      const maxC = Math.max(...res.pieces.map(p=>p.contrib))*1.05;
+      res.pieces.forEach((p,i)=>{
+        const y = baseY + 60 + i*62;
+        const bw = 190*(p.contrib/maxC);
+        svg += `<text x="${tableX}" y="${y-8}" font-size="14" fill="#334155">${p.name}</text>`;
+        svg += `<rect x="${tableX}" y="${y}" width="190" height="18" rx="9" fill="#e2e8f0"></rect>`;
+        svg += `<rect x="${tableX}" y="${y}" width="${bw}" height="18" rx="9" fill="${p.color}"></rect>`;
+        svg += `<text x="${tableX+205}" y="${y+14}" font-size="13" fill="#0f172a">${fmt(p.contrib)}</text>`;
+      });
+
+      sectionSvg.innerHTML = svg;
+    }
+
+    revealBtn.addEventListener('click',()=>{ revealed = true; render(); });
+    resetBtn.addEventListener('click',()=>{ revealed = false; guessSlider.value = Math.round(compute().totalHeight/2); naInput.value=''; iInput.value=''; render(); });
+    guessSlider.addEventListener('input', render);
+    modeSel.addEventListener('change', e => { state.mode = e.target.value; revealed = false; naInput.value=''; iInput.value=''; renderControls(); render(); });
+    naInput.addEventListener('input', render);
+    iInput.addEventListener('input', render);
+
+    renderControls();
+    guessSlider.value = 80;
+    render();
+  </script>
+</body>
+</html>
